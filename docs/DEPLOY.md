@@ -19,7 +19,7 @@ Two paths are documented: Render (fastest, blueprint included) and AWS.
 | `COOKIE_SECURE` | `true` |
 | `FRONTEND_ORIGIN` | exact static-site origin, `https://…`, no trailing slash |
 | `APP_BASE_URL` | same origin; used in verification and reset links |
-| `EMAIL_DELIVERY` | `resend`, `sendgrid` or `smtp` + credentials |
+| `EMAIL_DELIVERY` | `disabled` (boots, sends nothing) or `resend`, `sendgrid`, `smtp` + credentials |
 | `AI_PROVIDER` | `openai` for a hosted model (or `ollama` only on a host you control) |
 | `COOKIE_SAMESITE` | `none` when the frontend and API are different origins, `lax` when same-origin |
 
@@ -62,6 +62,14 @@ Steps:
    | `OPENAI_API_KEY` | provider key (secret) |
    | `EMAIL_FROM` | verified sender, e.g. `Attestive <no-reply@mail.example.com>` |
    | `EMAIL_API_KEY` | mail provider key (secret) |
+
+   The blueprint ships with `EMAIL_DELIVERY=disabled` so the API boots without a
+   mail provider. To send verification and reset email, change `EMAIL_DELIVERY`
+   to `resend`, `sendgrid` or `smtp` **and** set `EMAIL_FROM` plus
+   `EMAIL_API_KEY` (or `SMTP_HOST`/`SMTP_USERNAME`/`SMTP_PASSWORD`) in the same
+   change: a provider selected without credentials is a hard startup error.
+   Leaving `OPENAI_API_KEY` empty is safe — the API boots and `/tutor/status`
+   reports the tutor as unavailable.
 
 4. On the static site, set `VITE_API_URL` to
    `https://attestive-api.onrender.com/api/v1`, then trigger a rebuild — Vite

@@ -47,6 +47,8 @@ services:
         sync: false
       - key: APP_BASE_URL
         sync: false
+      # The tutor is optional: with no OPENAI_API_KEY the API still boots and
+      # /tutor/status reports unavailable instead of failing startup.
       - key: AI_PROVIDER
         value: openai
       - key: OPENAI_BASE_URL
@@ -55,8 +57,12 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      # Mail is optional too, but a provider without a key is a hard startup
+      # error, so the blueprint ships with delivery off. Set this to resend,
+      # sendgrid or smtp together with EMAIL_FROM and EMAIL_API_KEY (or
+      # SMTP_*) to send verification and password-reset email.
       - key: EMAIL_DELIVERY
-        value: resend
+        value: disabled
       - key: EMAIL_FROM
         sync: false
       - key: EMAIL_API_KEY
