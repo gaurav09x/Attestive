@@ -13,7 +13,7 @@ from sqlalchemy import delete, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.ai.provider import OllamaProvider, get_provider
+from app.ai.provider import get_provider
 from app.ai.retrieval import retrieve_material
 from app.ai.teaching_agent import TutoringContext, compose_reply
 from app.core.config import settings
@@ -87,28 +87,18 @@ async def tutor_status() -> TutorStatusRead:
             model=model,
             message=(
                 f"Could not reach {provider.name} at the configured address. "
-                + (
-                    "Start the local model server, then reload this page."
-                    if isinstance(provider, OllamaProvider)
-                    else "Check OPENAI_BASE_URL and OPENAI_API_KEY, then reload this page."
-                )
+                "Check OPENAI_BASE_URL and OPENAI_API_KEY, then reload this page."
             ),
         )
 
     if model and installed:
-        if isinstance(provider, OllamaProvider):
-            has_model = provider.has_model(installed)
-        else:
-            base = model.split(":")[0]
-            has_model = any(name.split(":")[0] == base for name in installed)
+        base = model.split(":")[0]
+        has_model = any(name.split(":")[0] == base for name in installed)
         if not has_model:
-            if isinstance(provider, OllamaProvider):
-                fix = f"Run `ollama pull {model}` or set OLLAMA_MODEL to a model you have."
-            else:
-                fix = (
-                    f"Set OPENAI_MODEL to a model your provider serves (it offers: "
-                    f"{', '.join(installed[:4])}{'…' if len(installed) > 4 else ''})."
-                )
+            fix = (
+                f"Set OPENAI_MODEL to a model your provider serves (it offers: "
+                f"{', '.join(installed[:4])}{'…' if len(installed) > 4 else ''})."
+            )
             return TutorStatusRead(
                 available=False,
                 provider=provider.name,

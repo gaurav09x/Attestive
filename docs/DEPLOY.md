@@ -20,7 +20,7 @@ Two paths are documented: Render (fastest, blueprint included) and AWS.
 | `FRONTEND_ORIGIN` | exact static-site origin, `https://…`, no trailing slash |
 | `APP_BASE_URL` | same origin; used in verification and reset links |
 | `EMAIL_DELIVERY` | `disabled` (boots, sends nothing) or `resend`, `sendgrid`, `smtp` + credentials |
-| `AI_PROVIDER` | `openai` for a hosted model (or `ollama` only on a host you control) |
+| `AI_PROVIDER` | `openai` with a hosted model (`disabled` for deterministic-only) |
 | `COOKIE_SAMESITE` | `none` when the frontend and API are different origins, `lax` when same-origin |
 
 Startup fails fast when a requirement is violated. Rate limiting must stay on.
@@ -126,8 +126,7 @@ then upload `dist/` to S3 behind CloudFront. Enable HTTPS, set the SPA fallback
 
 ## 3. The AI tutor in production
 
-Local Ollama cannot be reached from a hosted API process. Point the tutor at a
-hosted OpenAI-compatible endpoint:
+The tutor calls a hosted OpenAI-compatible endpoint:
 
 ```env
 AI_PROVIDER=openai

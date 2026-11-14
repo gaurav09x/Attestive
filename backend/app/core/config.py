@@ -80,13 +80,9 @@ class Settings(BaseSettings):
     ADDITIONAL_ORIGINS: list[str] = Field(default_factory=list)
 
     # --- AI (used from Phase 3 onwards) -----------------------------------
-    # ollama = local model server; openai = any OpenAI-compatible hosted API
-    # (Z.ai, OpenAI, Groq, Together, vLLM, …); disabled = deterministic only.
-    AI_PROVIDER: Literal["ollama", "openai", "disabled"] = "ollama"
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "qwen2.5:7b-instruct"
-    OLLAMA_EMBED_MODEL: str = "nomic-embed-text"
-    OLLAMA_TIMEOUT_SECONDS: int = 120
+    # openai = any OpenAI-compatible hosted API (OpenAI, Groq, Together, vLLM,
+    # …); disabled = deterministic only.
+    AI_PROVIDER: Literal["openai", "disabled"] = "openai"
     CHROMA_PERSIST_DIR: str = "./data/chroma"
     # The roadmap sequence is deterministic and validated; the model only writes
     # the plan note. Disabled automatically when the provider is unreachable.

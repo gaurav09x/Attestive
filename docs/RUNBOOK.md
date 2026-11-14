@@ -2,7 +2,7 @@
 
 Everything here is written for the deployment described in `README.md`: a FastAPI
 process behind a reverse proxy with PostgreSQL, a Vite-built frontend, and
-optionally an Ollama model server. Development on SQLite is not a deployment.
+and a hosted OpenAI-compatible model provider. Development on SQLite is not a deployment.
 
 ---
 
@@ -19,7 +19,7 @@ optionally an Ollama model server. Development on SQLite is not a deployment.
 | `APP_BASE_URL` | `https://…` — used in verification and reset links |
 | `RATE_LIMIT_ENABLED` | `true` |
 | `EMAIL_DELIVERY` | see §6; the default `console` is development-only |
-| `AI_PROVIDER` | `ollama` with `OLLAMA_MODEL` pulled, or `disabled` |
+| `AI_PROVIDER` | `openai` with `OPENAI_*` set, or `disabled` |
 
 Startup fails fast when a production requirement is violated:
 `SECRET_KEY`, `COOKIE_SECURE`, PostgreSQL, `APP_BASE_URL` and rate limiting are
@@ -179,14 +179,13 @@ limiting disabled.
 
 ## 8. AI model versioning
 
-* `AI_PROVIDER` selects the adapter: `ollama` for a local model server,
-  `openai` for any hosted OpenAI-compatible API, `disabled` for deterministic-only.
-  A hosted deployment cannot reach a local Ollama instance.
-* `OPENAI_BASE_URL`, `OPENAI_MODEL` and `OPENAI_API_KEY` configure the hosted
-  provider. The key stays server-side; never expose it through a `VITE_` variable.
-* `OLLAMA_MODEL` names the local model used by the tutor and (when enabled)
-  roadmap notes. Changing either model changes behaviour; treat it as a
-  deployment change and re-run the evaluation below.
+* `AI_PROVIDER` selects the path: `openai` for any hosted OpenAI-compatible API,
+  `disabled` for deterministic-only (the tutor then reports unavailable).
+* `OPENAI_BASE_URL`, `OPENAI_MODEL` and `OPENAI_API_KEY` configure the provider.
+  The key stays server-side; never expose it through a `VITE_` variable.
+* `OPENAI_MODEL` names the model used by the tutor and (when enabled) roadmap
+  notes. Changing it changes behaviour; treat it as a deployment change and
+  re-run the evaluation below.
 * `GET /api/v1/tutor/status` reports the provider, the configured model, whether
   it is installed, and the exact problem when it is not.
 * When the model is missing or unreachable, tutor sends return
@@ -229,5 +228,5 @@ a shared proxy.
 | 500s after deploy | `docker compose logs api`; run `alembic current`; check the newest migration |
 | users cannot sign in | lockout (`locked_until`), clock skew, `SECRET_KEY` changed (invalidates tokens) |
 | everyone gets 429 | one client is looping; inspect the reverse-proxy log by IP |
-| tutor answers 503 | `OLLAMA_BASE_URL`, model pulled, `OLLAMA_TIMEOUT_SECONDS` on slow hosts |
+| tutor answers 503 | `OPENAI_BASE_URL`, `OPENAI_MODEL`, `OPENAI_API_KEY`; check `GET /api/v1/tutor/status` |
 | links in emails do not work | `APP_BASE_URL` must match the public frontend origin exactly |

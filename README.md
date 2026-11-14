@@ -12,8 +12,8 @@ plans a route to their career goal, teaches at their level, and makes them prove
 | Phase | Scope | Status |
 | --- | --- | --- |
 | **1 — Foundation** | Repository, FastAPI backend, PostgreSQL schema + migrations, JWT auth with rotating refresh tokens, progressive onboarding, subject/skill catalogue, real dashboard, design system, marketing site, tests | **Implemented** |
-| **2 — Learning intelligence** | Diagnostic assessments with hidden answer keys, per-skill evidence updates, curated curriculum, persisted roadmaps with optional Ollama-written plan notes, assessment/roadmap UI | **Implemented** |
-| **3 — AI teaching** | Ollama teaching agent, persisted tutor conversations with memory, curriculum-grounded context, progressive hints, tutor chat UI | **Implemented** (retrieval is SQL over the curated curriculum; LangGraph, ChromaDB embeddings and token streaming are deferred) |
+| **2 — Learning intelligence** | Diagnostic assessments with hidden answer keys, per-skill evidence updates, curated curriculum, persisted roadmaps with optional model-written plan notes, assessment/roadmap UI | **Implemented** |
+| **3 — AI teaching** | Hosted-model teaching agent, persisted tutor conversations with memory, curriculum-grounded context, progressive hints, tutor chat UI | **Implemented** (retrieval is SQL over the curated curriculum; LangGraph, ChromaDB embeddings and token streaming are deferred) |
 | 4 — Practical learning | Coding lab, sandboxed execution, AI code review, exercise evaluation | Not started |
 | **5 — Engagement** | XP ledger wired to assessments, roadmap steps and tutoring, data-driven achievement unlocks, streaks, analytics API, Insights UI | **Implemented** (weekly challenges deferred) |
 | **6 — Career development** | Versioned role skill maps, gap analysis and readiness, deterministic study and portfolio recommendations, rubric-scored mock interviews, resume claims with evidence labels | **Implemented** |
@@ -90,8 +90,9 @@ docker compose up --build
 * API on `localhost:8000` (runs migrations and seeds the catalogue on start)
 * Vite dev server on `localhost:5173`
 
-Set `SECRET_KEY` in the environment or a root `.env` before any shared deployment. Ollama is
-reached at `host.docker.internal:11434` by default; Phase 3 will use it.
+Set `SECRET_KEY` in the environment or a root `.env` before any shared deployment. The tutor
+calls any hosted OpenAI-compatible API (`AI_PROVIDER=openai`, `OPENAI_*`); set
+`AI_PROVIDER=disabled` for deterministic-only runs.
 
 ---
 
@@ -137,7 +138,7 @@ confidence rises. Attempt scores, weak-skill names, proficiency and confidence a
 After submission, the planner selects modules from curated curriculum whose skills were weak, adds
 breadth to reach at least three items, places a project last when the student prefers projects, and
 archives the previous active plan for that subject. The sequence is deterministic and validated; if
-Ollama is configured, the roadmap agent writes the plan note (validated, length-capped, model named
+a model provider is configured, the roadmap agent writes the plan note (validated, length-capped, model named
 in `generated_by`). Without a model the note is written deterministically.
 
 Step completion is idempotent and awards XP once. It deliberately does **not** invent study minutes.
@@ -145,7 +146,7 @@ Step completion is idempotent and awards XP once. It deliberately does **not** i
 ### AI tutor (Phase 3)
 
 * Per-student conversations in `ai_conversations` / `conversation_messages`, resumable after signing
-  out. Every assistant message records the `provider` (`ollama:<model>`) that produced it and the
+  out. Every assistant message records the `provider` (`openai:<model>`) that produced it and the
   curriculum modules it was grounded in, so model output is never anonymous.
 * Each reply is built from the student's measured proficiency (weak and strong skills), their active
   roadmap step for that subject, learning preferences and the last ten messages of the conversation.
@@ -156,7 +157,7 @@ Step completion is idempotent and awards XP once. It deliberately does **not** i
   not to reveal the solution. Explain, worked-example and check-my-understanding modes share the
   same persisted transcript.
 * Level starts from measured proficiency when left on `auto` and is stored on the conversation.
-* When Ollama is disabled, unreachable or missing the configured model, `/tutor/status` says exactly
+* When the model provider is disabled, unreachable or missing the configured model, `/tutor/status` says exactly
   why and message sends return `503 ai_unavailable`. No assistant message is stored, so a failed
   reply can never look like teaching.
 
@@ -328,15 +329,13 @@ Never commit `.env`.
 | `COOKIE_SECURE` | `false` | Must be `true` in production |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Access token lifetime |
 | `REFRESH_TOKEN_EXPIRE_DAYS` | `14` | Refresh token lifetime |
-| `AI_PROVIDER` | `ollama` | `openai` for a hosted OpenAI-compatible API, `disabled` for deterministic-only |
+| `AI_PROVIDER` | `openai` | any OpenAI-compatible host, or `disabled` for deterministic-only |
 | `OPENAI_BASE_URL` | `https://api.openai.com/v1` | Base URL of the hosted provider (Z.ai, OpenAI, Groq, vLLM, …) |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Model id the provider serves |
 | `OPENAI_API_KEY` | — | Server-side key; never a `VITE_` variable |
 | `OPENAI_TIMEOUT_SECONDS` | `60` | Cap on a hosted tutor reply |
-| `OLLAMA_MODEL` | `qwen2.5:7b-instruct` | Pull with `ollama pull qwen2.5:7b-instruct` |
 | `AI_ROADMAP_ENABLED` | `true` | When false, roadmap notes are deterministic |
 | `ROADMAP_AI_TIMEOUT_SECONDS` | `12` | Hard cap on the plan-note call |
-| `OLLAMA_TIMEOUT_SECONDS` | `120` | Cap on a tutor reply; raise it on slow CPU-only hosts |
 | `APP_BASE_URL` | `http://localhost:5173` | Base for verification and reset links; HTTPS required in production |
 | `MAX_FAILED_LOGINS` | `5` | Failed passwords before an account locks |
 | `LOCKOUT_MINUTES` | `15` | Lockout cooling window |
@@ -375,9 +374,6 @@ Never commit `.env`.
   `docs/SECURITY.md` and run manually.
 * Docker is not installed on the machine this was developed on, so the Compose stack could not be
   executed here; it is provided for a Docker-capable host.
-* The Ollama roadmap-note path is implemented but **was not verified end-to-end on this machine**.
-  During testing gemma3:1b returned truncated JSON and gemma4 exceeded the request timeout, so the
-  deterministic fallback was used. Malformed model output is never stored. Run
-  `ollama pull qwen2.5:7b-instruct` (or set `OLLAMA_MODEL` to an installed model), allow more time,
-  and check `learning_paths.generated_by` changes from `deterministic` to `ollama:<model>`.
-  Roadmap sequencing does not depend on the model at all.
+* The model-written roadmap-note path is implemented; when the provider returns malformed JSON or
+  times out, the deterministic fallback is stored. Check `learning_paths.generated_by` changes from
+  `deterministic` to `openai:<model>`. Roadmap sequencing does not depend on the model at all.

@@ -6,10 +6,10 @@ missing provider, an unreachable model or malformed output returns None so the
 callers can fall back or report the AI as unavailable instead of inventing
 content.
 
-Two adapters are implemented: local Ollama (development) and any
-OpenAI-compatible hosted chat-completions API (production), selected with
-`AI_PROVIDER`. The SDK is not used; the HTTP shape is small and `httpx` is
-already a dependency.
+One adapter is implemented: any OpenAI-compatible hosted chat-completions API,
+selected with `AI_PROVIDER=openai` (or `disabled` for deterministic-only paths).
+The SDK is not used; the HTTP shape is small and `httpx` is already a
+dependency.
 """
 
 from __future__ import annotations
@@ -44,117 +44,6 @@ class ModelProvider(Protocol):
         timeout: int | None = None,
         format_schema: dict[str, Any] | None = None,
     ) -> dict[str, Any] | None: ...
-
-
-class OllamaProvider:
-    """Local Ollama chat completions, text or schema-constrained JSON."""
-
-    name = "ollama"
-
-    def __init__(self, base_url: str | None = None, model: str | None = None) -> None:
-        self.base_url = (base_url or settings.OLLAMA_BASE_URL).rstrip("/")
-        self.model = model or settings.OLLAMA_MODEL
-
-    async def available(self) -> bool:
-        return (await self.list_models()) is not None
-
-    async def list_models(self) -> list[str] | None:
-        """Installed model names, or None when the provider cannot be reached."""
-        try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
-                response = await client.get(f"{self.base_url}/api/tags")
-                response.raise_for_status()
-                body = response.json()
-        except (httpx.HTTPError, ValueError) as exc:
-            logger.info("Ollama unreachable: %s", exc)
-            return None
-        models = body.get("models")
-        if not isinstance(models, list):
-            return None
-        return [
-            entry["name"]
-            for entry in models
-            if isinstance(entry, dict) and isinstance(entry.get("name"), str)
-        ]
-
-    def has_model(self, installed: list[str]) -> bool:
-        base = self.model.split(":")[0]
-        return any(
-            name == self.model or name.split(":")[0] == base for name in installed
-        )
-
-    def _payload(
-        self, system: str, prompt: str, *, json_format: dict[str, Any] | str | None,
-        temperature: float, num_predict: int,
-    ) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "model": self.model,
-            "stream": False,
-            # Thinking models otherwise spend the whole token budget on hidden
-            # reasoning and return an empty message; this keeps the answer.
-            "think": False,
-            "options": {"temperature": temperature, "num_predict": num_predict},
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": prompt},
-            ],
-        }
-        if json_format:
-            payload["format"] = json_format
-        return payload
-
-    async def complete_text(
-        self, system: str, prompt: str, timeout: int | None = None
-    ) -> str | None:
-        payload = self._payload(
-            system, prompt, json_format=None, temperature=0.4, num_predict=700
-        )
-        try:
-            async with httpx.AsyncClient(
-                timeout=timeout or settings.OLLAMA_TIMEOUT_SECONDS
-            ) as client:
-                response = await client.post(f"{self.base_url}/api/chat", json=payload)
-                response.raise_for_status()
-                body = response.json()
-        except (httpx.HTTPError, ValueError) as exc:
-            logger.info("Ollama text completion unavailable: %s", exc)
-            return None
-        content = body.get("message", {}).get("content", "")
-        if not isinstance(content, str):
-            return None
-        text = content.strip()
-        return text or None
-
-    async def complete_json(
-        self,
-        system: str,
-        prompt: str,
-        timeout: int | None = None,
-        format_schema: dict[str, Any] | None = None,
-    ) -> dict[str, Any] | None:
-        payload = self._payload(
-            system,
-            prompt,
-            json_format=format_schema or "json",
-            temperature=0.2,
-            num_predict=300,
-        )
-        try:
-            async with httpx.AsyncClient(
-                timeout=timeout or settings.ROADMAP_AI_TIMEOUT_SECONDS
-            ) as client:
-                response = await client.post(f"{self.base_url}/api/chat", json=payload)
-                response.raise_for_status()
-                body = response.json()
-            content = body.get("message", {}).get("content", "")
-            if not isinstance(content, str) or not content.strip():
-                return None
-            parsed = json.loads(content)
-            return parsed if isinstance(parsed, dict) else None
-        except (httpx.HTTPError, ValueError, TypeError) as exc:
-            # Expected when the configured model is not pulled; callers fall back.
-            logger.info("Ollama JSON completion unavailable: %s", exc)
-            return None
 
 
 async def _post_json(
@@ -305,6 +194,4 @@ class OpenAICompatibleProvider:
 def get_provider() -> ModelProvider | None:
     if settings.AI_PROVIDER == "disabled":
         return None
-    if settings.AI_PROVIDER == "openai":
-        return OpenAICompatibleProvider()
-    return OllamaProvider()
+    return OpenAICompatibleProvider()

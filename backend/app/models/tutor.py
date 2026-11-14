@@ -74,7 +74,7 @@ class ConversationMessage(Base):
     # explain | hint | example | check — recorded for both sides of the exchange.
     mode: Mapped[str] = mapped_column(String(20), default="explain", nullable=False)
     hint_level: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    # "student" for the student's own words; "ollama:<model>" for model output.
+    # "student" for the student's own words; "openai:<model>" for model output.
     provider: Mapped[str] = mapped_column(String(60), default="student", nullable=False)
     # Curriculum titles the reply was grounded in (empty when nothing matched).
     sources: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)

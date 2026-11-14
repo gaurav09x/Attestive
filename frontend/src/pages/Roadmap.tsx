@@ -99,7 +99,7 @@ export default function RoadmapPage() {
   const subjects = Array.from(
     new Map(paths.map((path) => [path.subject_slug, path.subject_name])).entries(),
   );
-  const aiWritten = selected.generated_by.startsWith("ollama:");
+  const aiWritten = selected.generated_by !== "deterministic";
 
   async function updateItem(itemId: string, status: "in_progress" | "completed") {
     setUpdatingItem(itemId);
@@ -170,7 +170,7 @@ export default function RoadmapPage() {
               {aiWritten ? (
                 <>
                   <Sparkles className="size-3" aria-hidden />
-                  Written by {selected.generated_by.replace("ollama:", "")}
+                  Written by {selected.generated_by.replace(/^[a-z]+:/, "")}
                 </>
               ) : (
                 <>
@@ -184,7 +184,7 @@ export default function RoadmapPage() {
           <p className="mt-3 text-xs leading-relaxed text-fog-500">
             {aiWritten
               ? "The model wrote this note from your diagnostic. Module selection and order are computed and validated by the backend."
-              : "Generated deterministically from your diagnostic. Configure Ollama to have the roadmap agent write the plan note."}
+              : "Generated deterministically from your diagnostic. Add a model provider key to have the agent write the plan note."}
           </p>
 
           <div className="mt-5 border-t border-line pt-4">

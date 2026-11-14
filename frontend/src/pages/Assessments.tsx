@@ -206,8 +206,8 @@ export default function Assessments() {
 
       <p className="text-xs leading-relaxed text-fog-500">
         Diagnostics are curated for each subject so they work offline. Your roadmap note can be
-        written by the local model when Ollama is configured; the sequencing always comes from your
-        measured weak skills.
+        written by the AI tutor when a model provider is configured; the sequencing always comes
+        from your measured weak skills.
       </p>
     </div>
   );

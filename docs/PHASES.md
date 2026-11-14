@@ -67,7 +67,7 @@ cd frontend && npm run build                              # typecheck + producti
      curriculum order, adds a project last for students who prefer projects, archives the prior
      active plan.
    * Target level and duration derive from measured average and the student's weekly goal.
-   * `RoadmapAgent` writes a validated, length-capped plan note via Ollama when available;
+   * `RoadmapAgent` writes a validated, length-capped plan note via the model provider when available;
      otherwise a deterministic rationale is stored. `generated_by` records which happened.
    * Step completion is idempotent, awards XP once and never fabricates study minutes.
 
@@ -93,7 +93,7 @@ receive a persisted roadmap generated from the evidence, and resume it after sig
 
 **Delivered**
 
-* Provider abstraction (`ModelProvider`) with an Ollama adapter, model discovery (`/api/tags`) and
+* Provider abstraction (`ModelProvider`) with a hosted OpenAI-compatible adapter, model discovery (`/models`) and
   a `complete_text` path beside the schema-constrained `complete_json` used by the roadmap agent.
 * `TeachingAgent` composing prose from measured proficiency, the active roadmap step, learning
   preferences, retrieved curriculum and the last ten messages. Modes: explain, hint (levels 1–4),
@@ -106,9 +106,8 @@ receive a persisted roadmap generated from the evidence, and resume it after sig
   suggestions, and a status banner naming the model or the exact setup problem.
 * Offline behaviour: unavailable provider or model → `503 ai_unavailable`, nothing fabricated and
   nothing stored.
-* Provider adapters for local Ollama and for any hosted OpenAI-compatible chat-completions API
-  (`AI_PROVIDER=openai`), so a deployed instance uses a hosted model while development stays
-  local. The adapter speaks the HTTP shape directly; no vendor SDK is required.
+* A provider adapter for any hosted OpenAI-compatible chat-completions API (`AI_PROVIDER=openai`),
+  selected by config alone. The adapter speaks the HTTP shape directly; no vendor SDK is required.
 
 **Deferred:** LangGraph graphs, ChromaDB embeddings (retrieval is SQL over curated modules), token
 streaming, model-generated practice questions and LLM-graded answers. Hints are tracked

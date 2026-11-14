@@ -17,7 +17,7 @@ API = "/api/v1"
 
 
 class FakeProvider:
-    name = "ollama"
+    name = "openai"
     model = "fake-tutor:1b"
 
     def __init__(self) -> None:
@@ -76,7 +76,7 @@ async def test_tutor_status_reports_ready_model(client: AsyncClient, fake_provid
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["available"] is True
-    assert body["provider"] == "ollama"
+    assert body["provider"] == "openai"
     assert body["model"] == "fake-tutor:1b"
     assert "ready" in body["message"]
 
@@ -98,7 +98,7 @@ async def test_conversation_and_message_flow(client: AsyncClient, fake_provider)
 
     assert [message["role"] for message in body["messages"]] == ["user", "assistant"]
     assert body["messages"][0]["provider"] == "student"
-    assert body["messages"][1]["provider"] == "ollama:fake-tutor:1b"
+    assert body["messages"][1]["provider"] == "openai:fake-tutor:1b"
     assert body["messages"][1]["sources"], "reply should cite retrieved curriculum"
     assert body["suggestions"]
     assert body["conversation"]["message_count"] == 2

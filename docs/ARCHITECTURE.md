@@ -88,7 +88,7 @@ learned" from page views.
 ### ADR-006 — AI is a set of services behind a provider abstraction (planned, Phase 3+)
 
 ```text
-route/service → agent (Pydantic input/output) → model provider (Ollama | future)
+route/service → agent (Pydantic input/output) → model provider (hosted OpenAI-compatible | future)
                         │
                         └── LangGraph StateGraph for multi-step workflows
 ```
@@ -99,7 +99,7 @@ Rules that will govern the AI layer:
    back.
 2. Agents never write to the database. They propose; a service validates and persists.
 3. Every prompt includes only the student's relevant context (proficiency, goal, recent errors).
-4. If Ollama is unavailable, endpoints return a deterministic fallback or a clear "AI unavailable"
+4. If the model provider is unavailable, endpoints return a deterministic fallback or a clear "AI unavailable"
    state — never fabricated content presented as generated teaching.
 
 ### ADR-007 — Untrusted code never runs in the API process (planned, Phase 4)
@@ -132,9 +132,9 @@ student prefers projects, and archives the previous active plan. It never trusts
 choose or reference modules.
 
 The roadmap agent (`app/ai/roadmap_agent.py`) receives that validated plan and may write a 2–3
-sentence plan note through Ollama. Output is JSON-schema validated and length-capped; failure or an
+sentence plan note through the model provider. Output is JSON-schema validated and length-capped; failure or an
 unreachable provider falls back to a deterministic rationale. `learning_paths.generated_by` records
-`deterministic` or `ollama:<model>`, so the UI can state exactly what produced the note.
+`deterministic` or `openai:<model>`, so the UI can state exactly what produced the note.
 
 This keeps the learning sequence testable and reproducible while still using the model where it adds
 value (explanation), not authority (state changes).
@@ -257,7 +257,7 @@ reset, CSP/security headers at the edge, dependency scanning in CI, and the sand
 
 | Change | Where |
 | --- | --- |
-| Add an AI provider | new adapter beside the Ollama client; config switch only |
+| Add an AI provider | new adapter beside the hosted-provider client; config switch only |
 | Replace ChromaDB | retrieval interface consumed by agents |
 | Add a subject | seed catalogue + content tables, no code change to the dashboard |
 | Change the XP curve | `services/gamification.py` only |

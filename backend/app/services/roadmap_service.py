@@ -139,7 +139,7 @@ async def generate_roadmap(
     )
     if note:
         rationale = note[:600]
-        generated_by = f"ollama:{settings.OLLAMA_MODEL}"
+        generated_by = f"openai:{settings.OPENAI_MODEL}"
 
     # Only one active path per subject: archive the previous plan.
     await session.execute(

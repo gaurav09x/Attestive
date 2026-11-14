@@ -86,10 +86,6 @@ def test_get_provider_selects_adapter(monkeypatch) -> None:
     monkeypatch.setattr(settings, "AI_PROVIDER", "openai")
     assert isinstance(get_provider(), OpenAICompatibleProvider)
 
-    monkeypatch.setattr(settings, "AI_PROVIDER", "ollama")
-    assert get_provider() is not None
-    assert get_provider().name == "ollama"  # type: ignore[union-attr]
-
     monkeypatch.setattr(settings, "AI_PROVIDER", "disabled")
     assert get_provider() is None
 

@@ -182,7 +182,7 @@ export default function Features() {
             {
               icon: BrainCircuit,
               title: "Model independence",
-              body: "Agents talk to a provider abstraction. Ollama locally today; another provider later without touching product logic.",
+              body: "Agents talk to a provider abstraction, so the model behind the tutor can change without touching product logic.",
             },
             {
               icon: BarChart3,

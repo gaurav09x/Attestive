@@ -24,9 +24,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-local-compose-development-secret-key-change-me}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-attestive}:${POSTGRES_PASSWORD:-attestive}@db:5432/${POSTGRES_DB:-attestive}
       FRONTEND_ORIGIN: http://localhost:5173
-      AI_PROVIDER: ${AI_PROVIDER:-ollama}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b-instruct}
+      AI_PROVIDER: ${AI_PROVIDER:-openai}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}

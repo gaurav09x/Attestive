@@ -156,7 +156,7 @@ export default function Landing() {
               transition={{ delay: 0.3 }}
               className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs text-fog-400"
             >
-              {["No credit card", "Local-first AI with Ollama", "Your data stays yours"].map((item) => (
+              {["No credit card", "AI tutor that adapts to you", "Your data stays yours"].map((item) => (
                 <li key={item} className="flex items-center gap-1.5">
                   <Check className="size-3.5 text-emerald" aria-hidden />
                   {item}
