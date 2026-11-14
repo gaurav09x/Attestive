@@ -1,0 +1,72 @@
+# Render blueprint: API (Docker, FastAPI) + static frontend + managed PostgreSQL.
+#
+# 1. Push the repository to GitHub.
+# 2. Render → New → Blueprint → select the repo. It reads this file.
+# 3. Fill the `sync: false` variables (see docs/DEPLOY.md), then deploy.
+#
+# The API runs migrations and seeds on start, so the first deploy creates the
+# schema. Free web services sleep after inactivity; the first request wakes them.
+
+databases:
+  - name: attestive-db
+    databaseName: attestive
+    user: attestive
+    plan: free
+
+services:
+  - type: web
+    name: attestive-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /api/v1/health
+    dockerCommand: sh -c "python -m app.cli init && uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips=*"
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "true"
+      # The static site and the API are different origins, so the refresh cookie
+      # must be SameSite=None or the browser drops it on every API call.
+      - key: COOKIE_SAMESITE
+        value: none
+      - key: DATABASE_URL
+        fromDatabase:
+          name: attestive-db
+          property: connectionString
+      # Exact public origin of the static site, no trailing slash.
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
+      - key: AI_PROVIDER
+        value: openai
+      - key: OPENAI_BASE_URL
+        sync: false
+      - key: OPENAI_MODEL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: EMAIL_DELIVERY
+        value: resend
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_API_KEY
+        sync: false
+
+  - type: web
+    name: attestive-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
