@@ -4,8 +4,9 @@
 # 2. Render → New → Blueprint → select the repo. It reads this file.
 # 3. Fill the `sync: false` variables (see docs/DEPLOY.md), then deploy.
 #
-# The API runs migrations and seeds on start, so the first deploy creates the
-# schema. Free web services sleep after inactivity; the first request wakes them.
+# The API runs migrations and seeds on start (backend/start.sh), so the first
+# deploy creates the schema. Free web services sleep after inactivity; the first
+# request wakes them.
 
 databases:
   - name: attestive-db
@@ -21,7 +22,10 @@ services:
     dockerContext: ./backend
     plan: free
     healthCheckPath: /api/v1/health
-    dockerCommand: sh -c "python -m app.cli init && uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips=*"
+    # No dockerCommand here: the image's CMD (/app/start.sh) runs migrations and
+    # the seed, then serves on $PORT. A multi-command shell string in
+    # dockerCommand is handed to the container as one argument and dies with
+    # `not found` / exit status 127.
     envVars:
       - key: ENVIRONMENT
         value: production
