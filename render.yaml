@@ -22,10 +22,11 @@ services:
     dockerContext: ./backend
     plan: free
     healthCheckPath: /api/v1/health
-    # No dockerCommand here: the image's CMD (/app/start.sh) runs migrations and
-    # the seed, then serves on $PORT. A multi-command shell string in
-    # dockerCommand is handed to the container as one argument and dies with
-    # `not found` / exit status 127.
+    dockerCommand: /app/start.sh
+    # Single-token command on purpose. A multi-command shell string here
+    # (e.g. `sh -c "python -m app.cli init && uvicorn ..."`) is passed to the
+    # container as one argument and dies with `not found` / exit status 127.
+    # /app/start.sh migrates, seeds, then serves on $PORT.
     envVars:
       - key: ENVIRONMENT
         value: production
